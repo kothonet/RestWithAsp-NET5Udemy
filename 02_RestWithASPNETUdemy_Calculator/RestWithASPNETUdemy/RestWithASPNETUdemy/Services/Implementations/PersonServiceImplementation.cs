@@ -1,57 +1,86 @@
 ﻿using RestWithASPNETUdemy.Model;
+using RestWithASPNETUdemy.Model.Context;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 
 namespace RestWithASPNETUdemy.Services.Implementations
 {
     public class PersonServiceImplementation : IPersonService
     {
+        private readonly MySQLContext _context;
+
+        public PersonServiceImplementation(MySQLContext context)
+        {
+            _context = context;
+        }
+
+        public List<Person> FindAll()
+        {
+            return _context.Persons.ToList();
+        }
+
+        public Person FindById(long id)
+        {
+            return _context.Persons.SingleOrDefault(p => p.Id.Equals(id));
+        }
+
         public Person Creste(Person person)
         {
+            try
+            {
+                _context.Add(person);
+                _context.SaveChanges();
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+
+            return person;
+        }
+
+        public Person Update(Person person)
+        {
+            if (!Exists(person.Id)) return new Person();
+
+            var result = _context.Persons.SingleOrDefault(p => p.Id.Equals(person.Id));
+            if (result != null)
+            {
+                try
+                {
+                    _context.Entry(result).CurrentValues.SetValues(person);
+                    _context.SaveChanges();
+                }
+                catch (Exception)
+                {
+                    throw;
+                }
+            }
+
             return person;
         }
 
         public void Delete(long id)
         {
-            
-        }
-
-        public List<Person> FindAll()
-        {
-            List<Person> persons = new List<Person>();
-
-            for (int i=0; i<8; i++)
-            {
-                persons.Add(new Person()
+            var result = _context.Persons.SingleOrDefault(p => p.Id.Equals(id));
+            if (result != null) {
+                try
                 {
-                    Id = i,
-                    FirstName = "Person Name " + i,
-                    LastName = "Person Lastname " + i,
-                    Address = "Person Address " + i,
-                    Gender = "Male"
-                });
+                    _context.Persons.Remove(result);
+                    _context.SaveChanges();
+                }
+                catch (Exception)
+                {
+
+                    throw;
+                }
             }
-
-            return persons;
         }
 
-        public Person FindById(long id)
+        private bool Exists(long id)
         {
-            return new Person
-            {
-                Id = id,
-                FirstName = "Leandro",
-                LastName = "Costa",
-                Address = "Bauru / São Paulo / Brasil",
-                Gender = "Male"
-            };
-        }
-
-        public Person Update(Person person)
-        {
-           return person;
+            return _context.Persons.Any(p => p.Id.Equals(id));
         }
     }
 }
